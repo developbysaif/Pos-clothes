@@ -35,7 +35,7 @@ export default function Sidebar() {
         </div>
         <div>
           <h1 className="font-bold text-white text-base tracking-tight leading-tight">
-            NOOR BOUTIQUE
+            MR BILAL
           </h1>
           <span className="text-[11px] text-zinc-400 font-medium">Ladies Wear POS</span>
         </div>

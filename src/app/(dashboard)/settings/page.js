@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Store, Receipt, Barcode, ShieldCheck, Save } from 'lucide-react';
 
 export default function SettingsPage() {
-  const [storeName, setStoreName] = useState('Noor Ladies Boutique');
+  const [storeName, setStoreName] = useState('Mr Bilal');
   const [taxRate, setTaxRate] = useState('5');
   const [currency, setCurrency] = useState('USD ($)');
   const [receiptFooter, setReceiptFooter] = useState(

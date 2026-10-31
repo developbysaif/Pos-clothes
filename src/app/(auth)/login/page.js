@@ -37,7 +37,7 @@ export default function LoginPage() {
             <Sparkles className="w-6 h-6" />
           </div>
           <h2 className="text-2xl font-bold text-white tracking-tight">
-            NOOR LADIES BOUTIQUE
+            MR BILAL
           </h2>
           <p className="text-xs text-zinc-400">
             Sign in to access Cashier Terminal & POS Admin

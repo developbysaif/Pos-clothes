@@ -43,8 +43,8 @@ export default function ReceiptModal({ isOpen, onClose, saleData }) {
         <div id="thermal-receipt" className="text-xs font-mono leading-relaxed space-y-3">
           {/* Header */}
           <div className="text-center space-y-1">
-            <h2 className="text-base font-bold tracking-wider uppercase">NOOR LADIES BOUTIQUE</h2>
-            <p className="text-[11px] text-zinc-600">Fashion Avenue, Gulberg III, Lahore</p>
+            <h2 className="text-base font-bold tracking-wider uppercase">MR BILAL</h2>
+            <p className="text-[11px] text-zinc-600">Ladies Wear & Fashion Avenue</p>
             <p className="text-[11px] text-zinc-600">Phone: +92 42 3578 9012</p>
             <p className="text-[10px] text-zinc-500">TRN / Tax ID: 948103-88</p>
           </div>

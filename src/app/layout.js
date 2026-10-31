@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Noor Ladies Boutique - POS & Inventory",
+  title: "Mr Bilal - POS & Inventory",
   description: "Enterprise Point-of-Sale System for Ladies Fashion Apparel",
 };
 

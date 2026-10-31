@@ -10,7 +10,7 @@ export default function Home() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="font-bold text-lg tracking-tight">NOOR LADIES BOUTIQUE</h1>
+            <h1 className="font-bold text-lg tracking-tight">MR BILAL</h1>
             <p className="text-xs text-zinc-400">Enterprise Point of Sale & Inventory</p>
           </div>
         </div>
@@ -85,7 +85,7 @@ export default function Home() {
       </main>
 
       <footer className="text-center text-xs text-zinc-600 max-w-6xl w-full mx-auto">
-        Noor Boutique POS System • Built with Next.js & Express
+        Mr Bilal POS System • Built with Next.js & Express
       </footer>
     </div>
   );

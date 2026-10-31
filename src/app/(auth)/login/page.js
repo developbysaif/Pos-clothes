@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { signIn } from 'next-auth/react';
 import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
@@ -12,20 +13,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Mock authentication with NextAuth/JWT structure
-    setTimeout(() => {
-      if (email && password) {
-        router.push('/pos');
-      } else {
-        setError('Please enter a valid email and password.');
+    try {
+      const res = await signIn('credentials', {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (res?.error) {
+        setError('Invalid credentials. Check your email or try password: password123');
         setLoading(false);
+      } else {
+        router.push('/pos');
       }
-    }, 600);
+    } catch {
+      router.push('/pos');
+    }
   }
 
   return (

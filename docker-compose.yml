@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # 1. Relational Database (PostgreSQL 16)
+  pos-db:
+    image: postgres:16-alpine
+    container_name: boutique-pos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-pos_admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-SuperSecretBoutiquePass2026}
+      POSTGRES_DB: ${DB_NAME:-boutique_pos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./server/src/db/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-pos_admin} -d ${DB_NAME:-boutique_pos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Node.js Express REST API & WebSocket Server
+  pos-api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: boutique-pos-api
+    restart: unless-stopped
+    depends_on:
+      pos-db:
+        condition: service_healthy
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DATABASE_URL: postgres://${DB_USER:-pos_admin}:${DB_PASSWORD:-SuperSecretBoutiquePass2026}@pos-db:5432/${DB_NAME:-boutique_pos}
+      JWT_SECRET: ${JWT_SECRET:-super_secret_boutique_pos_jwt_key_2026}
+      CLIENT_ORIGIN: http://localhost:3000
+    ports:
+      - "5000:5000"
+
+  # 3. Next.js App Router Web Frontend
+  pos-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: boutique-pos-web
+    restart: unless-stopped
+    depends_on:
+      - pos-api
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://localhost:5000/api
+      NEXTAUTH_URL: http://localhost:3000
+      NEXTAUTH_SECRET: ${JWT_SECRET:-super_secret_boutique_pos_jwt_key_2026}
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+    driver: local

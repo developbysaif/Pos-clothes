@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useReducer, useEffect } from 'react';
+import { createContext, useContext, useReducer } from 'react';
 import { playBeep } from '../lib/audio';
 
 const CartContext = createContext(null);
@@ -9,25 +9,33 @@ const initialState = {
   items: [],
   customer: null,
   taxRate: 0.05, // 5% default tax
-  orderDiscount: 0, // fixed amount
-  paymentMethod: 'cash',
+  orderDiscount: 0, // fixed PKR amount or percentage
+  discountPercent: 0,
+  paymentMethod: 'CASH', // CASH, CARD, BANK_TRANSFER, JAZZCASH, EASYPAISA, CREDIT
+  splitPayments: [],
+  paidAmount: 0,
   heldOrders: [],
 };
 
 function cartReducer(state, action) {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const product = action.payload;
-      const existingIndex = state.items.findIndex((item) => item.id === product.id);
+      const p = action.payload;
+      // Identify item uniquely by variantId or id
+      const uniqueId = p.variantId || p.id;
+      const existingIndex = state.items.findIndex(
+        (item) => (item.variantId || item.id) === uniqueId
+      );
+
+      const availableStock = p.stock !== undefined ? p.stock : (p.stockQuantity !== undefined ? p.stockQuantity : 999);
 
       if (existingIndex > -1) {
         const updatedItems = [...state.items];
         const existing = updatedItems[existingIndex];
-        
-        // Check stock availability
-        if (existing.quantity + 1 > product.stock) {
+
+        if (existing.quantity + 1 > availableStock) {
           playBeep('error');
-          alert(`Cannot add more. Available stock for "${product.name}" is ${product.stock}.`);
+          alert(`Cannot add more. Available stock for "${p.name}" is ${availableStock}.`);
           return state;
         }
 
@@ -38,21 +46,31 @@ function cartReducer(state, action) {
         return { ...state, items: updatedItems };
       }
 
-      if (product.stock <= 0) {
+      if (availableStock <= 0) {
         playBeep('error');
-        alert(`Product "${product.name}" is out of stock!`);
+        alert(`Garment "${p.name}" is currently out of stock!`);
         return state;
       }
 
       const newItem = {
-        id: product.id,
-        sku: product.sku,
-        name: product.name,
-        category: product.category,
-        price: Number(product.price),
-        stock: product.stock,
+        id: uniqueId,
+        variantId: p.variantId || p.id,
+        productId: p.productId || p.id,
+        sku: p.sku || 'SKU-001',
+        barcode: p.barcode || p.sku || '',
+        name: p.name || p.product?.name || 'Garment',
+        category: p.category || p.product?.category?.name || 'Pret',
+        brand: p.brand || p.product?.brand?.name || 'Boutique',
+        size: p.size?.code || p.size || 'M',
+        color: p.color?.name || p.color || 'Assorted',
+        colorHex: p.colorHex || p.color?.hexCode || '#FF69B4',
+        fabric: p.fabric || 'Standard',
+        price: Number(p.price || p.sellingPrice || 0),
+        costPrice: Number(p.costPrice || p.purchasePrice || 0),
+        stock: availableStock,
         quantity: 1,
-        discount: 0, // item-level discount percentage
+        discount: 0, // item discount in PKR
+        image: p.image || p.product?.image || null,
       };
 
       return { ...state, items: [newItem, ...state.items] };
@@ -63,15 +81,15 @@ function cartReducer(state, action) {
       if (quantity <= 0) {
         return {
           ...state,
-          items: state.items.filter((item) => item.id !== id),
+          items: state.items.filter((item) => (item.variantId || item.id) !== id),
         };
       }
 
       const updatedItems = state.items.map((item) => {
-        if (item.id === id) {
+        if ((item.variantId || item.id) === id) {
           if (quantity > item.stock) {
             playBeep('error');
-            alert(`Maximum stock reached (${item.stock})`);
+            alert(`Maximum available stock is ${item.stock}`);
             return item;
           }
           return { ...item, quantity };
@@ -85,7 +103,7 @@ function cartReducer(state, action) {
     case 'REMOVE_ITEM': {
       return {
         ...state,
-        items: state.items.filter((item) => item.id !== action.payload),
+        items: state.items.filter((item) => (item.variantId || item.id) !== action.payload),
       };
     }
 
@@ -94,7 +112,7 @@ function cartReducer(state, action) {
       return {
         ...state,
         items: state.items.map((item) =>
-          item.id === id ? { ...item, discount: Math.max(0, Math.min(100, discount)) } : item
+          (item.variantId || item.id) === id ? { ...item, discount: Math.max(0, discount) } : item
         ),
       };
     }
@@ -111,12 +129,24 @@ function cartReducer(state, action) {
       return { ...state, orderDiscount: Math.max(0, action.payload) };
     }
 
+    case 'SET_DISCOUNT_PERCENT': {
+      return { ...state, discountPercent: Math.max(0, Math.min(100, action.payload)) };
+    }
+
     case 'SET_TAX_RATE': {
       return { ...state, taxRate: Math.max(0, action.payload) };
     }
 
     case 'CLEAR_CART': {
-      return { ...state, items: [], customer: null, orderDiscount: 0 };
+      return {
+        ...state,
+        items: [],
+        customer: null,
+        orderDiscount: 0,
+        discountPercent: 0,
+        paidAmount: 0,
+        splitPayments: [],
+      };
     }
 
     case 'HOLD_ORDER': {
@@ -126,6 +156,8 @@ function cartReducer(state, action) {
         items: state.items,
         customer: state.customer,
         date: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        count: state.items.reduce((sum, item) => sum + item.quantity, 0),
+        total: state.items.reduce((sum, item) => sum + item.price * item.quantity, 0),
       };
       return {
         ...state,
@@ -133,6 +165,7 @@ function cartReducer(state, action) {
         items: [],
         customer: null,
         orderDiscount: 0,
+        discountPercent: 0,
       };
     }
 
@@ -148,6 +181,13 @@ function cartReducer(state, action) {
       };
     }
 
+    case 'REMOVE_HELD_ORDER': {
+      return {
+        ...state,
+        heldOrders: state.heldOrders.filter((o) => o.id !== action.payload),
+      };
+    }
+
     default:
       return state;
   }
@@ -157,20 +197,25 @@ export function CartProvider({ children }) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
 
   // Derived calculations
-  const subtotal = state.items.reduce((sum, item) => {
+  const rawSubtotal = state.items.reduce((sum, item) => {
     const itemTotal = item.price * item.quantity;
-    const discountedTotal = itemTotal * (1 - (item.discount || 0) / 100);
-    return sum + discountedTotal;
+    const discounted = Math.max(0, itemTotal - (item.discount || 0));
+    return sum + discounted;
   }, 0);
 
-  const discountedSubtotal = Math.max(0, subtotal - state.orderDiscount);
+  // Apply invoice-level discount (either fixed PKR or percentage)
+  const percentDiscountAmount = (rawSubtotal * (state.discountPercent || 0)) / 100;
+  const totalDiscount = (state.orderDiscount || 0) + percentDiscountAmount;
+  const discountedSubtotal = Math.max(0, rawSubtotal - totalDiscount);
   const taxAmount = discountedSubtotal * state.taxRate;
   const grandTotal = discountedSubtotal + taxAmount;
   const totalItemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const value = {
     ...state,
-    subtotal,
+    subtotal: rawSubtotal,
+    discountAmount: totalDiscount,
+    discountedSubtotal,
     taxAmount,
     grandTotal,
     totalItemCount,
@@ -185,9 +230,12 @@ export function CartProvider({ children }) {
       dispatch({ type: 'SET_PAYMENT_METHOD', payload: method }),
     setOrderDiscount: (discount) =>
       dispatch({ type: 'SET_ORDER_DISCOUNT', payload: discount }),
+    setDiscountPercent: (percent) =>
+      dispatch({ type: 'SET_DISCOUNT_PERCENT', payload: percent }),
     clearCart: () => dispatch({ type: 'CLEAR_CART' }),
     holdOrder: () => dispatch({ type: 'HOLD_ORDER' }),
     restoreOrder: (id) => dispatch({ type: 'RESTORE_ORDER', payload: id }),
+    removeHeldOrder: (id) => dispatch({ type: 'REMOVE_HELD_ORDER', payload: id }),
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

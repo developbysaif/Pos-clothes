@@ -3,37 +3,46 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
-import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, AlertCircle } from 'lucide-react';
+import { api } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('cashier@noorpos.local');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('admin@boutique.com');
+  const [password, setPassword] = useState('admin123');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function performLogin(loginEmail, loginPassword) {
     setError('');
     setLoading(true);
 
     try {
-      const res = await signIn('credentials', {
-        redirect: false,
-        email,
-        password,
-      });
-
-      if (res?.error) {
-        setError('Invalid credentials. Check your email or try password: password123');
-        setLoading(false);
+      const res = await api.login({ email: loginEmail, password: loginPassword });
+      if (res.token) {
+        localStorage.setItem('boutique_token', res.token);
+        localStorage.setItem('boutique_user', JSON.stringify(res.user));
+        router.push('/dashboard');
       } else {
-        router.push('/pos');
+        setError('Login response did not include an authentication token.');
       }
-    } catch {
-      router.push('/pos');
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err.message || 'Invalid email or password.');
+    } finally {
+      setLoading(false);
     }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    await performLogin(email, password);
+  }
+
+  function handleQuickLogin(roleEmail, rolePass) {
+    setEmail(roleEmail);
+    setPassword(rolePass);
+    performLogin(roleEmail, rolePass);
   }
 
   return (
@@ -44,24 +53,25 @@ export default function LoginPage() {
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-600 to-indigo-600 flex items-center justify-center text-white mx-auto shadow-lg shadow-pink-500/20">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h2 className="text-2xl font-bold text-white tracking-tight">
+          <h2 className="text-2xl font-black text-white tracking-tight">
             MR BILAL
           </h2>
           <p className="text-xs text-zinc-400">
-            Sign in to access Cashier Terminal & POS Admin
+            Sign in to access Ladies Clothing POS & Inventory System
           </p>
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs text-center">
-            {error}
+          <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs text-center flex items-center justify-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>{error}</span>
           </div>
         )}
 
         {/* Credentials Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+            <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
               Staff Email / Cashier ID
             </label>
             <div className="relative">
@@ -71,14 +81,14 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-zinc-800/80 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="cashier@noorpos.local"
+                className="w-full pl-9 pr-4 py-2.5 bg-zinc-800/80 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="admin@boutique.com"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-300 block mb-1.5">
+            <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
               Password
             </label>
             <div className="relative">
@@ -88,7 +98,7 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-zinc-800/80 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2.5 bg-zinc-800/80 border border-zinc-700 rounded-xl text-xs text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 placeholder="••••••••"
               />
             </div>
@@ -97,36 +107,54 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition disabled:opacity-50"
+            className="w-full py-3 bg-gradient-to-r from-pink-600 to-indigo-600 hover:from-pink-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-pink-600/30 flex items-center justify-center gap-2 transition active:scale-95 disabled:opacity-50"
           >
-            <span>{loading ? 'Authenticating...' : 'Sign In to Terminal'}</span>
+            <span>{loading ? 'Authenticating with MySQL...' : 'Sign In to Terminal'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        {/* Social / OAuth Mock */}
-        <div className="relative">
+        {/* Quick Demo Staff Logins */}
+        <div className="relative pt-2">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-zinc-800"></div>
           </div>
-          <div className="relative flex justify-center text-[11px] uppercase">
-            <span className="bg-zinc-900 px-2 text-zinc-500">Or continue with</span>
+          <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
+            <span className="bg-zinc-900 px-2 text-zinc-500">Quick Demo Staff Accounts</span>
           </div>
         </div>
 
-        <button
-          onClick={() => router.push('/pos')}
-          className="w-full py-2 border border-zinc-700 hover:bg-zinc-800 text-zinc-300 text-xs font-medium rounded-xl flex items-center justify-center gap-2 transition"
-        >
-          <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          <span>Quick Demo Cashier Login</span>
-        </button>
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('admin@boutique.com', 'admin123')}
+            className="py-2 px-1 text-center rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-pink-500/50 text-[11px] font-bold text-zinc-200 transition"
+          >
+            <div className="text-pink-400 font-extrabold text-[10px]">Super Admin</div>
+            <div className="text-[10px] text-zinc-400 truncate">Saif</div>
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('manager@boutique.com', 'admin123')}
+            className="py-2 px-1 text-center rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-indigo-500/50 text-[11px] font-bold text-zinc-200 transition"
+          >
+            <div className="text-indigo-400 font-extrabold text-[10px]">Manager</div>
+            <div className="text-[10px] text-zinc-400 truncate">Bilal</div>
+          </button>
 
-        <div className="text-center text-xs text-zinc-400">
-          Need a staff account?{' '}
-          <Link href="/register" className="text-indigo-400 hover:underline font-medium">
-            Register cashier
-          </Link>
+          <button
+            type="button"
+            onClick={() => handleQuickLogin('cashier@boutique.com', 'admin123')}
+            className="py-2 px-1 text-center rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-emerald-500/50 text-[11px] font-bold text-zinc-200 transition"
+          >
+            <div className="text-emerald-400 font-extrabold text-[10px]">Cashier #1</div>
+            <div className="text-[10px] text-zinc-400 truncate">Zainab</div>
+          </button>
+        </div>
+
+        <div className="text-center text-xs text-zinc-500">
+          Default password: <span className="font-mono text-zinc-400">admin123</span>
         </div>
       </div>
     </div>

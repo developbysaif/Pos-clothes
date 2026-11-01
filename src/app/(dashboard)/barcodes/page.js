@@ -50,7 +50,25 @@ export default function BarcodePage() {
   }
 
   useEffect(() => {
-    loadVariants();
+    let isMounted = true;
+    async function init() {
+      try {
+        const res = await api.getInventory();
+        if (isMounted) {
+          setVariants(res.variants || []);
+        }
+      } catch (err) {
+        console.error('Failed to load variants for barcodes:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Update tester barcode render

@@ -177,15 +177,39 @@ router.get('/stats', authenticateToken, async (req, res, next) => {
 
     const weeklyChart = Object.values(daysMap);
 
-    // 13. Monthly Sales Graph (Last 6 months)
-    const monthlySales = [
-      { month: 'Jun', sales: 420000, orders: 85 },
-      { month: 'Jul', sales: 510000, orders: 110 },
-      { month: 'Aug', sales: 680000, orders: 145 },
-      { month: 'Sep', sales: 590000, orders: 130 },
-      { month: 'Oct', sales: 740000, orders: 165 },
-      { month: 'Nov', sales: Math.max(Number(totalRevenueAgg._sum.grandTotal || 0), 28000), orders: Math.max(todaySales._count.id || 0, 2) },
-    ];
+    // 13. Monthly Sales Graph (Last 6 months calculated from database)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+    sixMonthsAgo.setDate(1);
+    sixMonthsAgo.setHours(0, 0, 0, 0);
+
+    const sixMonthSales = await prisma.sale.findMany({
+      where: {
+        saleDate: { gte: sixMonthsAgo },
+        status: { in: ['COMPLETED', 'PARTIALLY_RETURNED'] },
+      },
+      select: { saleDate: true, grandTotal: true },
+    });
+
+    const monthsMap = {};
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const mLabel = d.toLocaleDateString('en-US', { month: 'short' });
+      monthsMap[mKey] = { month: mLabel, sales: 0, orders: 0 };
+    }
+
+    sixMonthSales.forEach((s) => {
+      const d = new Date(s.saleDate);
+      const mKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      if (monthsMap[mKey]) {
+        monthsMap[mKey].sales += Number(s.grandTotal);
+        monthsMap[mKey].orders += 1;
+      }
+    });
+
+    const monthlySales = Object.values(monthsMap);
 
     res.json({
       todaySales: Number(todaySales._sum.grandTotal || 0),

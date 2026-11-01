@@ -256,7 +256,7 @@ export default function CameraScannerModal({ isOpen, onClose, onDetected }) {
                 <div className="mt-3 text-center bg-black/20 p-3 rounded-xl max-w-xs">
                   <p className="text-xs font-semibold">{scannedProduct.name}</p>
                   <p className="text-xs font-bold text-emerald-200 mt-0.5">
-                    ${scannedProduct.price.toFixed(2)} • {scannedProduct.category}
+                    ₨ {Number(scannedProduct.price || 0).toLocaleString()} • {scannedProduct.category}
                   </p>
                 </div>
               ) : (
@@ -319,10 +319,10 @@ export default function CameraScannerModal({ isOpen, onClose, onDetected }) {
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
               {[
-                { label: 'Silk Kurti', sku: '890123456001', price: '$34.99' },
-                { label: 'Bridal Lehenga', sku: '890123456003', price: '$189.99' },
-                { label: 'Chiffon Dupatta', sku: '890123456005', price: '$18.00' },
-                { label: '3-Pc Suit', sku: '890123456007', price: '$49.99' },
+                { label: '3-Pc Lawn Suit', sku: '890123456001', price: '₨ 8,950' },
+                { label: 'Anarkali Gown', sku: '890123456006', price: '₨ 28,500' },
+                { label: 'Cotton Kurti', sku: '890123456010', price: '₨ 3,450' },
+                { label: 'Kashmiri Shawl', sku: '890123456017', price: '₨ 16,500' },
               ].map((b) => (
                 <button
                   key={b.sku}

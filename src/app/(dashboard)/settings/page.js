@@ -6,7 +6,7 @@ import {
   Volume2, Database, Download, Upload, AlertCircle, RefreshCw,
   Printer, Percent, MapPin, Phone, Mail, Building, FileText
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, API_BASE } from '@/lib/api';
 
 export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
@@ -33,10 +33,6 @@ export default function SettingsPage() {
   // Backup / Restore
   const [restoring, setRestoring] = useState(false);
   const [restoreMessage, setRestoreMessage] = useState(null);
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
 
   async function loadSettings() {
     try {
@@ -66,6 +62,42 @@ export default function SettingsPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    let isMounted = true;
+    async function init() {
+      try {
+        const res = await api.getSettings();
+        if (isMounted) {
+          if (res.store) {
+            setStoreName(res.store.name || 'MR BILAL Ladies Wear');
+            setPhone(res.store.phone || '');
+            setEmail(res.store.email || '');
+            setAddress(res.store.address || '');
+            setTaxNumber(res.store.taxNumber || '');
+            setCurrency(res.store.currency || 'PKR');
+            if (res.store.receiptHeader) setReceiptHeader(res.store.receiptHeader);
+            if (res.store.receiptFooter) setReceiptFooter(res.store.receiptFooter);
+          }
+          if (res.settings) {
+            if (res.settings.tax_rate !== undefined) setTaxRate(res.settings.tax_rate);
+            if (res.settings.max_discount !== undefined) setMaxDiscount(res.settings.max_discount);
+            if (res.settings.printer_format) setPrinterFormat(res.settings.printer_format);
+            if (res.settings.scanner_sound !== undefined) setScannerSound(res.settings.scanner_sound === 'true');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+        if (isMounted) setError('Could not load current settings from MySQL database.');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   async function handleSave(e) {
     e.preventDefault();
@@ -105,12 +137,15 @@ export default function SettingsPage() {
   async function handleDownloadBackup() {
     try {
       const token = localStorage.getItem('boutique_token') || localStorage.getItem('token') || '';
-      const res = await fetch('http://localhost:5000/api/settings/backup', {
+      const res = await fetch(`${API_BASE}/settings/backup`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) throw new Error('Backup failed');
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'Backup failed');
+      }
       const data = await res.json();
       
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -142,20 +177,9 @@ export default function SettingsPage() {
       const text = await file.text();
       const backupData = JSON.parse(text);
 
-      const token = localStorage.getItem('boutique_token') || localStorage.getItem('token') || '';
-      const res = await fetch('http://localhost:5000/api/settings/restore', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ backupData }),
-      });
+      const json = await api.restoreBackup(backupData);
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.message || 'Restore failed');
-
-      setRestoreMessage({ type: 'success', text: json.message });
+      setRestoreMessage({ type: 'success', text: json.message || 'Database restored successfully' });
       loadSettings();
     } catch (err) {
       setRestoreMessage({ type: 'error', text: err.message });

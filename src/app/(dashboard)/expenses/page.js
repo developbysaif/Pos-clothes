@@ -64,7 +64,26 @@ export default function ExpensesPage() {
   }
 
   useEffect(() => {
-    loadExpenses();
+    let isMounted = true;
+    async function fetchExpenses() {
+      try {
+        const res = await api.getExpenses({
+          category: selectedCategory !== 'ALL' ? selectedCategory : undefined,
+        });
+        if (isMounted) {
+          setExpenses(res.expenses || []);
+          setTotalAmount(res.totalAmount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to load expenses:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    fetchExpenses();
+    return () => {
+      isMounted = false;
+    };
   }, [selectedCategory]);
 
   async function handleCreateExpense(e) {

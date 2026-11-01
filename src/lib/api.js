@@ -1,5 +1,5 @@
 // Centralized API Client for MR BILAL Ladies Wear POS
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export async function fetchApi(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
@@ -95,6 +95,7 @@ export const api = {
   createCustomer: (data) => fetchApi('/customers', { method: 'POST', body: JSON.stringify(data) }),
   getCustomerById: (id) => fetchApi(`/customers/${id}`),
   updateCustomer: (id, data) => fetchApi(`/customers/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  payCustomer: (id, data) => fetchApi(`/customers/${id}/pay`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Expenses & Accounts
   getExpenses: (params = {}) => {
@@ -133,4 +134,6 @@ export const api = {
   // Settings & Backup
   getSettings: () => fetchApi('/settings'),
   updateSettings: (data) => fetchApi('/settings', { method: 'PUT', body: JSON.stringify(data) }),
+  downloadBackup: () => fetchApi('/settings/backup'),
+  restoreBackup: (backupData) => fetchApi('/settings/restore', { method: 'POST', body: JSON.stringify({ backupData }) }),
 };

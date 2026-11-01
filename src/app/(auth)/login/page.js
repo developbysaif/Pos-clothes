@@ -136,7 +136,7 @@ export default function LoginPage() {
           
           <button
             type="button"
-            onClick={() => handleQuickLogin('manager@boutique.com', 'admin123')}
+            onClick={() => handleQuickLogin('manager@boutique.com', 'manager123')}
             className="py-2 px-1 text-center rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-indigo-500/50 text-[11px] font-bold text-zinc-200 transition"
           >
             <div className="text-indigo-400 font-extrabold text-[10px]">Manager</div>
@@ -145,7 +145,7 @@ export default function LoginPage() {
 
           <button
             type="button"
-            onClick={() => handleQuickLogin('cashier@boutique.com', 'admin123')}
+            onClick={() => handleQuickLogin('cashier@boutique.com', 'cashier123')}
             className="py-2 px-1 text-center rounded-xl bg-zinc-800/60 hover:bg-zinc-800 border border-zinc-700/60 hover:border-emerald-500/50 text-[11px] font-bold text-zinc-200 transition"
           >
             <div className="text-emerald-400 font-extrabold text-[10px]">Cashier #1</div>
@@ -154,7 +154,7 @@ export default function LoginPage() {
         </div>
 
         <div className="text-center text-xs text-zinc-500">
-          Default password: <span className="font-mono text-zinc-400">admin123</span>
+          Demo passwords: <span className="font-mono text-zinc-400">admin123</span> | <span className="font-mono text-zinc-400">manager123</span> | <span className="font-mono text-zinc-400">cashier123</span>
         </div>
       </div>
     </div>

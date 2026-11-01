@@ -77,7 +77,7 @@ router.post('/', authenticateToken, async (req, res, next) => {
           userId: req.user.id,
           returnDate: now,
           totalRefundAmount: parseFloat(totalRefundAmount) || 0,
-          returnReason: returnReason || 'SIZE_EXCHANGE',
+          returnReason: returnReason || req.body.reason || 'SIZE_EXCHANGE',
           exchangeDifference: parseFloat(exchangeDifference) || 0,
           status: 'COMPLETED',
           notes: notes || null,
@@ -86,7 +86,8 @@ router.post('/', authenticateToken, async (req, res, next) => {
 
       // 2. Process each returned item
       for (const item of items) {
-        const restock = item.restock !== false && item.conditionStatus !== 'DAMAGED';
+        const itemCondition = item.conditionStatus || item.condition || 'GOOD';
+        const restock = item.restock !== false && itemCondition !== 'DAMAGED';
 
         // Create Return Item record
         await tx.returnItem.create({
@@ -97,7 +98,7 @@ router.post('/', authenticateToken, async (req, res, next) => {
             quantity: item.quantity,
             unitPrice: parseFloat(item.unitPrice) || 0,
             refundAmount: (parseFloat(item.unitPrice) || 0) * item.quantity,
-            conditionStatus: item.conditionStatus || 'GOOD',
+            conditionStatus: itemCondition,
             restockStatus: restock,
             exchangeVariantId: item.exchangeVariantId || null,
           },

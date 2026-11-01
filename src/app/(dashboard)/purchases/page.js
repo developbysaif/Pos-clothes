@@ -59,7 +59,34 @@ export default function PurchasesPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function init() {
+      try {
+        const [purRes, supRes, invRes] = await Promise.all([
+          api.getPurchases(),
+          api.getSuppliers(),
+          api.getInventory(),
+        ]);
+        if (isMounted) {
+          setPurchases(purRes.purchases || []);
+          setSuppliers(supRes.suppliers || []);
+          setVariants(invRes.variants || []);
+
+          if (supRes.suppliers?.length > 0 && !selectedSupplierId) {
+            setSelectedSupplierId(supRes.suppliers[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load purchases:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleAddItemRow() {

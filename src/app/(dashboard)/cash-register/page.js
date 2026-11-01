@@ -53,7 +53,30 @@ export default function CashRegisterPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function init() {
+      try {
+        const [curRes, histRes] = await Promise.all([
+          api.getCurrentShift(),
+          api.getShiftHistory(),
+        ]);
+        if (isMounted) {
+          setShiftData(curRes);
+          setHistory(histRes.shifts || []);
+          if (curRes.isOpen && curRes.shift) {
+            setCountedCash(curRes.shift.expectedCash?.toString() || '');
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load cash register shifts:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleOpenShift(e) {

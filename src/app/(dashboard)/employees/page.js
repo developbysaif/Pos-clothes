@@ -53,7 +53,32 @@ export default function EmployeesPage() {
   }
 
   useEffect(() => {
-    loadEmployees();
+    let isMounted = true;
+    async function init() {
+      try {
+        const res = await api.getEmployees();
+        if (isMounted) {
+          setUsers(res.users || []);
+          setRoles(res.roles || []);
+          setBranches(res.branches || []);
+          if (res.roles?.length > 0 && !roleId) {
+            setRoleId(res.roles[0].id);
+          }
+          if (res.branches?.length > 0 && !branchId) {
+            setBranchId(res.branches[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load employees:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleCreateStaff(e) {

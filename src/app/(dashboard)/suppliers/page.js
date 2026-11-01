@@ -53,7 +53,23 @@ export default function SuppliersPage() {
   }
 
   useEffect(() => {
-    loadSuppliers();
+    let isMounted = true;
+    async function init() {
+      try {
+        const res = await api.getSuppliers();
+        if (isMounted) {
+          setSuppliers(res.suppliers || []);
+        }
+      } catch (err) {
+        console.error('Failed to load suppliers:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleCreateSupplier(e) {

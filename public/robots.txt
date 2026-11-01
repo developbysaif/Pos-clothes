@@ -1,0 +1,40 @@
+# Robots.txt for MR BILAL Ladies Wear POS & Inventory System
+User-agent: *
+Allow: /$
+Allow: /public/
+
+# Disallow private operational terminals, authentication, and inventory screens
+Disallow: /api/
+Disallow: /login
+Disallow: /register
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /pos
+Disallow: /pos/
+Disallow: /products
+Disallow: /products/
+Disallow: /inventory
+Disallow: /inventory/
+Disallow: /purchases
+Disallow: /purchases/
+Disallow: /returns
+Disallow: /returns/
+Disallow: /customers
+Disallow: /customers/
+Disallow: /suppliers
+Disallow: /suppliers/
+Disallow: /cash-register
+Disallow: /cash-register/
+Disallow: /expenses
+Disallow: /expenses/
+Disallow: /employees
+Disallow: /employees/
+Disallow: /reports
+Disallow: /reports/
+Disallow: /settings
+Disallow: /settings/
+Disallow: /barcodes
+Disallow: /barcodes/
+
+# Canonical Sitemap
+Sitemap: https://mrbilalwear.com/sitemap.xml

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import {
   Search,
   Camera,
@@ -104,40 +104,6 @@ export default function POSPage() {
 
   const barcodeInputRef = useRef(null);
 
-  // Load catalog data from MySQL
-  async function loadData() {
-    try {
-      setLoading(true);
-      const [prodRes, catRes, custRes] = await Promise.all([
-        api.getProducts({ limit: 100 }),
-        api.getCategories(),
-        api.getCustomers(),
-      ]);
-
-      setProducts(prodRes.products || []);
-      setCategories(catRes.categories || []);
-      setCustomersList(custRes.customers || []);
-    } catch (err) {
-      console.error('Failed to load POS catalog:', err);
-      showToast('Error loading inventory from server', true);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    loadData();
-    // Handle URL query string ?scan=...
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const scanCode = params.get('scan');
-      if (scanCode) {
-        handleBarcodeScanned(scanCode);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   function showToast(msg, isError = false) {
     setToastMessage({ msg, isError });
     setTimeout(() => setToastMessage(null), 3500);
@@ -215,11 +181,84 @@ export default function POSPage() {
     }
   }
 
+  // Load catalog data from MySQL
+  async function loadData() {
+    try {
+      setLoading(true);
+      const [prodRes, catRes, custRes] = await Promise.all([
+        api.getProducts({ limit: 100 }),
+        api.getCategories(),
+        api.getCustomers(),
+      ]);
+
+      setProducts(prodRes.products || []);
+      setCategories(catRes.categories || []);
+      setCustomersList(custRes.customers || []);
+    } catch (err) {
+      console.error('Failed to load POS catalog:', err);
+      showToast('Error loading inventory from server', true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    let isMounted = true;
+    async function init() {
+      try {
+        const [prodRes, catRes, custRes] = await Promise.all([
+          api.getProducts({ limit: 100 }),
+          api.getCategories(),
+          api.getCustomers(),
+        ]);
+        if (isMounted) {
+          setProducts(prodRes.products || []);
+          setCategories(catRes.categories || []);
+          setCustomersList(custRes.customers || []);
+        }
+      } catch (err) {
+        console.error('Failed to load POS catalog:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+
+    // Handle URL query string ?scan=...
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const scanCode = params.get('scan');
+      if (scanCode) {
+        setTimeout(() => {
+          handleBarcodeScanned(scanCode);
+        }, 50);
+      }
+    }
+
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // USB Hardware keyboard wedge scanner hook
   useBarcodeScanner(handleBarcodeScanned, {
     enabled: true,
     playSound: soundEnabled,
   });
+
+  // Open Checkout Modal & set initial tender
+  const openCheckoutModal = useCallback(() => {
+    if (items.length === 0) {
+      showToast('Cart is empty. Add garments first.', true);
+      return;
+    }
+    setTenderAmount(grandTotal.toString());
+    setSplitMethod('NONE');
+    setSplitCash('');
+    setSplitDigital('');
+    setIsCheckoutOpen(true);
+  }, [items.length, grandTotal]);
 
   // Global Keyboard Shortcuts (F1, F2, F4, F8)
   useEffect(() => {
@@ -247,7 +286,7 @@ export default function POSPage() {
     }
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items]);
+  }, [items, clearCart, openCheckoutModal]);
 
   // Filter products by category and search
   const filteredProducts = useMemo(() => {
@@ -274,19 +313,6 @@ export default function POSPage() {
     e.preventDefault();
     if (!barcodeInput.trim()) return;
     handleBarcodeScanned(barcodeInput.trim());
-  }
-
-  // Open Checkout Modal & set initial tender
-  function openCheckoutModal() {
-    if (items.length === 0) {
-      showToast('Cart is empty. Add garments first.', true);
-      return;
-    }
-    setTenderAmount(grandTotal.toString());
-    setSplitMethod('NONE');
-    setSplitCash('');
-    setSplitDigital('');
-    setIsCheckoutOpen(true);
   }
 
   // Quick Customer Creation

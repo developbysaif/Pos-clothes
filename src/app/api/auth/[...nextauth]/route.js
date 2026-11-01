@@ -14,17 +14,43 @@ export const authOptions = {
           return null;
         }
 
-        // Demo credential authentication check (or query Postgres user table)
-        if (
-          credentials.email === 'cashier@noorpos.local' ||
-          credentials.email === 'saif@boutique.pos' ||
-          credentials.password === 'password123'
-        ) {
+        // Validate against authorized staff credentials
+        const validUsers = [
+          {
+            email: 'admin@boutique.com',
+            password: 'admin123',
+            id: 'usr-admin-1',
+            name: 'Saif Super Admin',
+            role: 'SUPER_ADMIN',
+          },
+          {
+            email: 'manager@boutique.com',
+            password: 'manager123',
+            id: 'usr-manager-1',
+            name: 'Bilal Store Manager',
+            role: 'MANAGER',
+          },
+          {
+            email: 'cashier@boutique.com',
+            password: 'cashier123',
+            id: 'usr-cashier-1',
+            name: 'Zainab Lead Cashier',
+            role: 'CASHIER',
+          },
+        ];
+
+        const matched = validUsers.find(
+          (u) =>
+            u.email.toLowerCase() === credentials.email.toLowerCase().trim() &&
+            u.password === credentials.password
+        );
+
+        if (matched) {
           return {
-            id: '7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f',
-            name: 'Saif Cashier',
-            email: credentials.email,
-            role: 'cashier',
+            id: matched.id,
+            name: matched.name,
+            email: matched.email,
+            role: matched.role,
           };
         }
 

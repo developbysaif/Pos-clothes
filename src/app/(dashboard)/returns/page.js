@@ -52,7 +52,29 @@ export default function ReturnsPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function init() {
+      try {
+        const [retRes, salesRes, invRes] = await Promise.all([
+          api.getReturns(),
+          api.getSales({ limit: 50 }),
+          api.getInventory(),
+        ]);
+        if (isMounted) {
+          setReturns(retRes.returns || []);
+          setSalesList(salesRes.sales || []);
+          setVariants(invRes.variants || []);
+        }
+      } catch (err) {
+        console.error('Failed to load returns data:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleFindSale(e) {

@@ -47,7 +47,23 @@ export default function CustomersPage() {
   }
 
   useEffect(() => {
-    loadCustomers();
+    let isMounted = true;
+    async function init() {
+      try {
+        const res = await api.getCustomers();
+        if (isMounted) {
+          setCustomers(res.customers || []);
+        }
+      } catch (err) {
+        console.error('Failed to load customers:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleRegister(e) {

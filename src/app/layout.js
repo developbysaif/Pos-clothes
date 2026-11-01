@@ -13,8 +13,45 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Mr Bilal Ladies Wear POS & Inventory",
-  description: "Modern Responsive Point-of-Sale with Real-Time Barcode Scanner for Boutique & Apparel",
+  metadataBase: new URL('https://mrbilalwear.com'),
+  title: {
+    default: 'MR BILAL - Luxury Ladies Wear POS & Inventory System',
+    template: '%s | MR BILAL POS',
+  },
+  description:
+    'Enterprise Ladies Clothing Store Point-of-Sale & Inventory Management System. Dual USB & live camera barcode scanning, multi-branch inventory tracking, garment tag printing, and thermal receipt generation.',
+  keywords: [
+    'ladies wear pos',
+    'clothing boutique pos',
+    'pakistan fashion pos',
+    'barcode inventory system',
+    'eastern wear pos',
+    'thermal receipt printer pos',
+  ],
+  authors: [{ name: 'MR BILAL Ladies Wear & Couture' }],
+  creator: 'MR BILAL Engineering',
+  openGraph: {
+    type: 'website',
+    locale: 'en_PK',
+    url: 'https://mrbilalwear.com',
+    siteName: 'MR BILAL POS & Inventory',
+    title: 'MR BILAL - Luxury Ladies Wear POS & Inventory System',
+    description:
+      'Next-Gen Point-of-Sale with live dual barcode scanning, thermal receipt printing, and real-time inventory management for fashion boutiques.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'MR BILAL - Luxury Ladies Wear POS & Inventory System',
+    description:
+      'Modern Responsive Point-of-Sale with Real-Time Barcode Scanner for Boutique & Apparel.',
+  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  themeColor: '#09090b',
 };
 
 export default function RootLayout({ children }) {

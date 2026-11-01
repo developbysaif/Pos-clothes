@@ -17,7 +17,7 @@ import {
   ArrowUpRight,
   TrendingDown,
 } from 'lucide-react';
-import { api } from '../../../lib/api';
+import { api, API_BASE } from '@/lib/api';
 
 export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('SALES'); // 'SALES' | 'PROFIT_LOSS' | 'INVENTORY_VALUATION'
@@ -47,12 +47,34 @@ export default function ReportsPage() {
   }
 
   useEffect(() => {
-    loadReportData();
+    let isMounted = true;
+    async function fetchReports() {
+      try {
+        const [salesRes, plRes, invRes] = await Promise.all([
+          api.getSalesReport({ range }),
+          api.getProfitLossReport(),
+          api.getInventoryValuation(),
+        ]);
+        if (isMounted) {
+          setSalesReport(salesRes);
+          setPlReport(plRes);
+          setInvValuation(invRes);
+        }
+      } catch (err) {
+        console.error('Failed to load reports:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    fetchReports();
+    return () => {
+      isMounted = false;
+    };
   }, [range]);
 
   function handleExportCsv(type) {
     const token = typeof window !== 'undefined' ? localStorage.getItem('boutique_token') : '';
-    const url = `http://localhost:5000/api/reports/export-csv?type=${type}&token=${token}`;
+    const url = `${API_BASE}/reports/export-csv?type=${type}&token=${token}`;
     window.open(url, '_blank');
   }
 

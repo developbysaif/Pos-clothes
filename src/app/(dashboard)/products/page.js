@@ -88,7 +88,41 @@ export default function ProductsPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function init() {
+      try {
+        const [prodRes, catRes] = await Promise.all([
+          api.getProducts({ limit: 100 }),
+          api.getCategories(),
+        ]);
+        if (isMounted) {
+          setProducts(prodRes.products || []);
+          setCategories(catRes.categories || []);
+          setBrands(catRes.brands || []);
+          setSizesList(catRes.sizes || []);
+          setColorsList(catRes.colors || []);
+
+          if (catRes.categories?.length > 0 && !newCatId) {
+            setNewCatId(catRes.categories[0].id);
+          }
+          if (catRes.brands?.length > 0 && !newBrandId) {
+            setNewBrandId(catRes.brands[0].id);
+          }
+          if (catRes.colors?.length > 0 && selectedColors.length === 0) {
+            setSelectedColors([catRes.colors[0].id]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load products catalog:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function handleBarcodeDetected(code) {

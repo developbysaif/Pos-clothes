@@ -59,7 +59,30 @@ export default function InventoryPage() {
   }
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+    async function init() {
+      try {
+        const [invRes, movRes, trfRes] = await Promise.all([
+          api.getInventory(),
+          api.getStockMovements({ limit: 50 }),
+          api.getTransfers(),
+        ]);
+        if (isMounted) {
+          setVariants(invRes.variants || []);
+          setSummary(invRes.summary || null);
+          setMovements(movRes.movements || []);
+          setTransfers(trfRes.transfers || []);
+        }
+      } catch (err) {
+        console.error('Failed to load inventory data:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   async function handleAdjustSubmit(e) {

@@ -11,20 +11,7 @@ async function authenticateToken(req, res, next) {
   const token = authHeader && authHeader.split(' ')[1];
 
   if (!token) {
-    // If no token provided in POS terminal, resolve to default admin or cashier for seamless store operation
-    try {
-      const defaultUser = await prisma.user.findFirst({
-        where: { email: 'admin@boutique.com' },
-        include: { role: { include: { permissions: { include: { permission: true } } } }, branch: true },
-      });
-      if (defaultUser) {
-        req.user = defaultUser;
-        return next();
-      }
-    } catch (e) {
-      // Continue to 401
-    }
-    return res.status(401).json({ error: 'Access token required.' });
+    return res.status(401).json({ error: 'Authentication required. Missing bearer token.' });
   }
 
   jwt.verify(token, JWT_SECRET, async (err, decoded) => {

@@ -94,8 +94,11 @@ router.post('/', authenticateToken, async (req, res, next) => {
     const branchId = req.user.branchId || (await prisma.branch.findFirst())?.id;
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const timeStr = [now.getHours(), now.getMinutes(), now.getSeconds()]
+      .map((n) => n.toString().padStart(2, '0'))
+      .join('');
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const invoiceNumber = `INV-${dateStr}-${randomSuffix}`;
+    const invoiceNumber = `INV-${dateStr}-${timeStr}-${randomSuffix}`;
 
     const parsedGrandTotal = parseFloat(grandTotal) || 0;
     const parsedPaidAmount = parseFloat(paidAmount) || parsedGrandTotal;
@@ -255,23 +258,36 @@ router.post('/', authenticateToken, async (req, res, next) => {
         where: { userId: req.user.id, status: 'OPEN' },
       });
       if (activeShift) {
-        const cashAmount = payments
-          .filter((p) => (p.paymentMethod || 'CASH') === 'CASH')
-          .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        const cardAmount = payments
-          .filter((p) => p.paymentMethod === 'CARD')
-          .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-        const otherAmount = payments
-          .filter((p) => !['CASH', 'CARD'].includes(p.paymentMethod))
-          .reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        let netCash = 0;
+        let netCard = 0;
+        let netOther = 0;
+
+        if (payments && payments.length > 0) {
+          const cashPayments = payments.filter((p) => (p.paymentMethod || 'CASH') === 'CASH');
+          const cardPayments = payments.filter((p) => p.paymentMethod === 'CARD');
+          const otherPayments = payments.filter((p) => !['CASH', 'CARD'].includes(p.paymentMethod));
+
+          const rawCash = cashPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+          netCash = Math.max(0, rawCash - changeAmount);
+          netCard = cardPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+          netOther = otherPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+        } else {
+          const method = req.body.paymentMethod || 'CASH';
+          if (method === 'CASH') {
+            netCash = Math.max(0, parsedPaidAmount - changeAmount);
+          } else if (method === 'CARD') {
+            netCard = parsedPaidAmount;
+          } else {
+            netOther = parsedPaidAmount;
+          }
+        }
 
         await tx.cashRegister.update({
           where: { id: activeShift.id },
           data: {
-            cashSales: { increment: cashAmount || (parsedPaidAmount - changeAmount) },
-            cardSales: { increment: cardAmount },
-            otherSales: { increment: otherAmount },
-            totalCashIn: { increment: cashAmount || (parsedPaidAmount - changeAmount) },
+            cashSales: { increment: netCash },
+            cardSales: { increment: netCard },
+            otherSales: { increment: netOther },
           },
         });
       }

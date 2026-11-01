@@ -122,4 +122,73 @@ router.put('/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
+/**
+ * POST /api/customers/:id/pay
+ * Settle customer outstanding balance / credit account
+ */
+router.post('/:id/pay', authenticateToken, async (req, res, next) => {
+  try {
+    const { amount, paymentMethod = 'CASH', notes, referenceNo } = req.body;
+    const parsedAmount = parseFloat(amount);
+    if (!parsedAmount || parsedAmount <= 0) {
+      return res.status(400).json({ error: 'Valid positive payment amount required.' });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.findUnique({ where: { id: req.params.id } });
+      if (!customer) throw new Error('Customer not found.');
+
+      const newBalance = Math.max(0, Number(customer.balance) - parsedAmount);
+
+      const updatedCustomer = await tx.customer.update({
+        where: { id: customer.id },
+        data: { balance: newBalance },
+      });
+
+      const ledgerEntry = await tx.customerLedger.create({
+        data: {
+          customerId: customer.id,
+          transactionType: 'PAYMENT_RECEIVED',
+          debit: 0,
+          credit: parsedAmount,
+          balance: newBalance,
+          description: `Customer credit clearance payment of Rs. ${parsedAmount} via ${paymentMethod}${referenceNo ? ` (Ref: ${referenceNo})` : ''}`,
+        },
+      });
+
+      // Update cash register if payment made in cash
+      if (paymentMethod === 'CASH') {
+        const activeShift = await tx.cashRegister.findFirst({
+          where: { userId: req.user.id, status: 'OPEN' },
+        });
+        if (activeShift) {
+          await tx.cashRegister.update({
+            where: { id: activeShift.id },
+            data: {
+              totalCashIn: { increment: parsedAmount },
+            },
+          });
+        }
+      }
+
+      await tx.auditLog.create({
+        data: {
+          userId: req.user.id,
+          action: 'CUSTOMER_PAYMENT',
+          module: 'CUSTOMERS',
+          recordId: customer.id,
+          details: `Recorded clearance payment of Rs. ${parsedAmount} for customer ${customer.name}`,
+          ipAddress: req.ip,
+        },
+      });
+
+      return { customer: updatedCustomer, ledgerEntry };
+    });
+
+    res.json({ message: 'Customer payment recorded successfully.', result });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
 module.exports = router;

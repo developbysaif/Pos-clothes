@@ -47,7 +47,23 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
-    loadStats();
+    let isMounted = true;
+    async function init() {
+      try {
+        const data = await api.getDashboardStats();
+        if (isMounted) {
+          setStats(data);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard statistics:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   function handleBarcodeDetected(code) {
